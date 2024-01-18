@@ -14,47 +14,45 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.conf.urls import url
 from django.contrib import admin
-from django.urls import include, path, re_path
-from django.conf.urls import url
+from django.urls import path
 from django.conf.urls.static import static
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from postideas.settings import MEDIA_ROOT, MEDIA_URL
+from proposals.views import ProposalAPICreateView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
-from rest_framework import permissions
-
-
-schema_view = get_schema_view(
-   openapi.Info(
-      title='Post.Ideas API',
-      default_version='v1',
-      description='Платформа для работы с идеями сотрудников Почты России',
-      terms_of_service='https://www.google.com/policies/terms/',
-      contact=openapi.Contact(email='belogurov.ivan@list.ru'),
-      license=openapi.License(name='BSD License'),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-)
+from users.views import *
+from proposals.views import *
 
 
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
-
+    
+    # Proposals
+    path('api/proposals/create/', ProposalAPICreateView.as_view(), name='proposal_create'),
+    path('api/proposals/<int:pk>/update/', ProposalAPIUpdateView.as_view(), name='proposal_update'),
+    path('api/proposals/heads/', ProposalAPIGetHeadsView.as_view(), name='proposal_level_heads_get'),
+    path('api/proposals/<int:pk>/approve/', ProposalAPIApproveView.as_view(), name='proposal_approve'),
+    path('api/proposals/<int:pk>/reject/', ProposalAPIRejectView.as_view(), name='proposal_reject'),
+    path('api/proposals/<int:pk>/execute/', ProposalAPIExecuteView.as_view(), name='proposal_execute'),
+    path('api/proposals/<int:pk>/process/', ProposalAPIProcessView.as_view(), name='proposal_process'),
+    path('api/proposals/<int:pk>/revision/', ProposalAPIRevisionView.as_view(), name='proposal_revision'),
+    path('api/proposals/statuses/', StatusAPIListView.as_view(), name='proposal_statuses'),
+    path('api/proposals/categories/', CategoryAPIListView.as_view(), name='proposals_categories_get'),
+    path('api/proposals/me/', ProposalAPIListMeView.as_view(), name='proposals_me'),
+    path('api/proposals/me/search/', ProposalAPIListSearchView.as_view(), name='proposals_search'),
+    
     # Users
-    path('api/users/token/', TokenObtainPairView.as_view(), name='token-obtain-pair'),
-    path('api/users/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
-    path('api/users/token/verify/', TokenVerifyView.as_view(), name='token-verify'),
-    # path('api/users/auth/', include('djoser.urls')),
-    # path('api/users/auth/', include('djoser.urls.jwt')),
+    path('api/users/me/', CurrentUserAPIDetailView.as_view(), name='current_user'),
+    path('api/users/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/users/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/users/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
     # Swagger
-    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc')
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 urlpatterns += static(MEDIA_URL, document_root=MEDIA_ROOT)

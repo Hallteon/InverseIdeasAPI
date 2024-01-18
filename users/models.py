@@ -58,7 +58,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     firstname = models.CharField(max_length=255, verbose_name='Имя')
     lastname = models.CharField(max_length=255, verbose_name='Фамилия')
     surname = models.CharField(max_length=255, verbose_name='Отчество')
-    birthday = models.DateField(default=datetime.date.today(), verbose_name='Дата')
+    birthday = models.DateField(default=datetime.date.today(), verbose_name='День рождения')
     job = models.ForeignKey('Job', default=1, null=True, on_delete=models.CASCADE, related_name='users_job', verbose_name='Должность')
     role = models.ForeignKey('Role', default=2, on_delete=models.CASCADE, related_name='users_role', verbose_name='Роль')
     password = models.CharField(max_length=255, verbose_name='Пароль')
