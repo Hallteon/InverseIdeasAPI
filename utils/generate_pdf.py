@@ -16,12 +16,12 @@ class FileGenerator:
         p = canvas.Canvas(buffer)
         y_cord = 750
         
-        pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
         p.setFont('DejaVuSerif', 12)
 
         for head in self.content.keys():
             p.drawString(100, y_cord, f'{head}: {self.content[head]}')
-            y_cord -= 50
+            y_cord -= 20
 
         p.showPage()
         p.save()

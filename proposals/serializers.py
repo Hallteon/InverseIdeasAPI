@@ -32,3 +32,45 @@ class ProposalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proposal
         fields = ('id', 'name', 'author', 'category', 'level', 'content', 'document', 'histories', 'created_date')
+        
+        
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('id', 'name')
+        
+        
+class CommentSerializer(serializers.ModelSerializer):
+    author = CustomUserSerializer(required=False)
+    
+    class Meta:
+        model = Comment
+        fields = ('id', 'author', 'content', 'created_datetime')
+        
+        
+class ProposalPostReadDetailSerializer(serializers.ModelSerializer):
+    proposal = ProposalSerializer(required=False)
+    tags = TagSerializer(required=False, many=True)
+    comments = CommentSerializer(required=False, many=True)
+    
+    class Meta:
+        model = ProposalPost
+        fields = ('id', 'proposal', 'tags', 'comments', 'likes', 'views')       
+        
+        
+class ProposalPostReadListSerializer(serializers.ModelSerializer):
+    proposal = ProposalSerializer(required=False)
+    comments = serializers.SerializerMethodField()
+    
+    def get_comments(self, obj):
+        return obj.comments.count()
+    
+    class Meta:
+        model = ProposalPost
+        fields = ('id', 'proposal', 'tags', 'comments', 'likes', 'views')        
+        
+        
+class ProposalPostWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProposalPost
+        fields = ('id', 'proposal', 'tags', 'comments', 'likes', 'views')

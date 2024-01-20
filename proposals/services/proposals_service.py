@@ -1,6 +1,6 @@
 from fuzzywuzzy import process, fuzz
 from proposals.daos import *
-from users.daos import UserDAO
+from users.daos import CustomUserDAO
 
 
 class ProposalCreateService:
@@ -10,15 +10,18 @@ class ProposalCreateService:
         self.proposal_data = proposal_data
     
     def create_proposal(self):
-        self.proposal_data['author'] = UserDAO().get(self.user_id)
+        self.proposal_data['author'] = CustomUserDAO().get(self.user_id)
         self.proposal_data['category'] = CategoryDAO().get(self.proposal_data['category'])
         
-        return ProposalDAO().create(self.proposal_data)
+        proposal = ProposalDAO().create(self.proposal_data)
+        proposal_post = ProposalPostDAO().create({'proposal': proposal})
+        
+        return proposal
         
     def create_proposal_histories(self, proposal: Proposal):
-        created_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_id), 
+        created_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_id), 
                                     'status': StatusDAO().get_by_type('proposal_created')})
-        approval_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_to), 
+        approval_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_to), 
                                     'status': StatusDAO().get_by_type('proposal_in_approve')})
         proposal.histories.set([created_history, approval_history])
         
@@ -41,10 +44,10 @@ class ProposalService:
             
     def approve_proposal(self, history_comment: str):
         proposal = ProposalDAO().update_level(self.proposal_id)
-        approval_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_id),
+        approval_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_id),
                                                 'status': StatusDAO().get_by_type('proposal_approved'),
                                                 'comment': history_comment})
-        in_approve_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_to),
+        in_approve_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_to),
                                                 'status': StatusDAO().get_by_type('proposal_in_approve'),
                                                 'comment': history_comment})
         proposal = ProposalDAO().add_histories(self.proposal_id, [approval_history, in_approve_history])
@@ -53,7 +56,7 @@ class ProposalService:
         
     def reject_proposal(self, history_comment: str):
         proposal = ProposalDAO().get(self.proposal_id)
-        approval_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_id),
+        approval_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_id),
                                                 'status': StatusDAO().get_by_type('proposal_rejected'),
                                                 'comment': history_comment})
         proposal = ProposalDAO().add_histories(self.proposal_id, [approval_history])
@@ -62,7 +65,7 @@ class ProposalService:
     
     def revision_proposal(self, history_comment: str):
         proposal = ProposalDAO().get(self.proposal_id)
-        approval_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_id),
+        approval_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_id),
                                                 'status': StatusDAO().get_by_type('proposal_need_revision'),
                                                 'comment': history_comment})
         proposal = ProposalDAO().add_histories(self.proposal_id, [approval_history])
@@ -71,7 +74,7 @@ class ProposalService:
     
     def process_proposal(self, history_comment: str):
         proposal = ProposalDAO().get(self.proposal_id)
-        approval_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_id),
+        approval_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_id),
                                                 'status': StatusDAO().get_by_type('proposal_in_work'),
                                                 'comment': history_comment})
         proposal = ProposalDAO().add_histories(self.proposal_id, [approval_history])
@@ -80,7 +83,7 @@ class ProposalService:
     
     def execute_proposal(self, history_comment: str):
         proposal = ProposalDAO().get(self.proposal_id)
-        approval_history = HistoryDAO().create({'by_user': UserDAO().get(self.user_id),
+        approval_history = HistoryDAO().create({'by_user': CustomUserDAO().get(self.user_id),
                                                 'status': StatusDAO().get_by_type('proposal_done'),
                                                 'comment': history_comment})
         proposal = ProposalDAO().add_histories(self.proposal_id, [approval_history])
@@ -94,13 +97,13 @@ class ProposalService:
             
             match proposal_level:
                 case 1:
-                    return UserDAO().get_user_division_heads(self.user_id)
+                    return CustomUserDAO().get_user_division_heads(self.user_id)
                 case 2:
-                    return UserDAO().get_user_department_heads(self.user_id)
+                    return CustomUserDAO().get_user_department_heads(self.user_id)
                 case 3:
-                    return UserDAO().get_user_office_heads(self.user_id)
+                    return CustomUserDAO().get_user_office_heads(self.user_id)
             
-        return UserDAO().get_user_division_heads(self.user_id) 
+        return CustomUserDAO().get_user_division_heads(self.user_id) 
     
     def get_my_proposals(self):
         proposals = ProposalDAO().filter_by_me(self.user_id, self.status_id)
@@ -114,3 +117,10 @@ class ProposalService:
         proposals = proposals.filter(name__in=best_matches_fuzz)
         
         return proposals
+    
+    def check_proposal_executed_status(self):
+        executed_status = StatusDAO().get_by_type('proposal_done')
+        status_check = ProposalDAO().check_statuses(self.proposal_id, [executed_status])
+        
+        return status_check
+        

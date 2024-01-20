@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from users.models import CustomUser
 
 
-class UserDAO:
+class CustomUserDAO:
     __slots__ = ('_db',)
     
     def __init__(self):

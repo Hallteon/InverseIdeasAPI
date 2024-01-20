@@ -1,4 +1,6 @@
 import uuid
+from proposals.mixins import CheckProposalExecutedMixin
+from proposals.services.proposal_posts_service import ProposalPostService
 from rest_framework import generics, status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.core.files.base import ContentFile
@@ -8,7 +10,6 @@ from rest_framework import views
 from proposals.models import *
 from proposals.serializers import *
 from proposals.permissions import *
-from proposals.serializers import ProposalSerializer
 from proposals.services.proposals_service import ProposalCreateService, ProposalService
 from users.serializers import CustomUserSerializer
 from users.permissions import IsHead
@@ -47,10 +48,10 @@ class ProposalAPICreateView(views.APIView):
         return Response(proposal_serializer.data, status=status.HTTP_201_CREATED)
     
     
-class ProposalAPIUpdateView(generics.UpdateAPIView):
+class ProposalAPIDetailView(generics.RetrieveUpdateAPIView):
     queryset = Proposal.objects.all()
     serializer_class = ProposalSerializer
-    permission_classes = [IsAuthenticated, IsProposalAuthor]
+    permission_classes = [IsAuthenticated, IsProposalAuthorOrReadOnly]
     
     
 class ProposalAPIGetHeadsView(generics.RetrieveAPIView):
@@ -88,11 +89,16 @@ class ProposalAPIListSearchView(generics.ListAPIView):
         return proposals
 
     
-class ProposalAPIApproveView(views.APIView):
+class ProposalAPIApproveView(CheckProposalExecutedMixin, views.APIView):
     serializer_class = ProposalSerializer
     permission_classes = [IsAuthenticated, IsHead, IsInProposalHistories]
     
     def post(self, request, *args, **kwargs):
+        executed_status = self.check_status(self.kwargs['pk'])
+        
+        if executed_status:
+            return Response('The proposal has already been done!', status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
         proposal_data = ProposalService(request.user.id, request.data.get('user_to', None),
                                         self.kwargs['pk']).approve_proposal(request.data.get('comment', None))
         proposal_serializer = ProposalSerializer(proposal_data)
@@ -100,11 +106,16 @@ class ProposalAPIApproveView(views.APIView):
         return Response(proposal_serializer.data, status=status.HTTP_202_ACCEPTED)
       
       
-class ProposalAPIRejectView(views.APIView):
+class ProposalAPIRejectView(CheckProposalExecutedMixin, views.APIView):
     serializer_class = ProposalSerializer
     permission_classes = [IsAuthenticated, IsHead, IsInProposalHistories]
     
     def post(self, request, *args, **kwargs):
+        executed_status = self.check_status(self.kwargs['pk'])
+        
+        if executed_status:
+            return Response('The proposal has already been done!', status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
         proposal_data = ProposalService(request.user.id, request.data.get('user_to', None),
                                         self.kwargs['pk']).reject_proposal(request.data.get('comment', None))
         proposal_serializer = ProposalSerializer(proposal_data)
@@ -112,11 +123,16 @@ class ProposalAPIRejectView(views.APIView):
         return Response(proposal_serializer.data, status=status.HTTP_202_ACCEPTED)
       
       
-class ProposalAPIExecuteView(views.APIView):
+class ProposalAPIExecuteView(CheckProposalExecutedMixin, views.APIView):
     serializer_class = ProposalSerializer
     permission_classes = [IsAuthenticated, IsHead, IsInProposalHistories]
     
     def post(self, request, *args, **kwargs):
+        executed_status = self.check_status(self.kwargs['pk'])
+        
+        if executed_status:
+            return Response('The proposal has already been done!', status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
         proposal_data = ProposalService(request.user.id, request.data.get('user_to', None),
                                         self.kwargs['pk']).execute_proposal(request.data.get('comment', None))
         proposal_serializer = ProposalSerializer(proposal_data)
@@ -124,11 +140,16 @@ class ProposalAPIExecuteView(views.APIView):
         return Response(proposal_serializer.data, status=status.HTTP_202_ACCEPTED)
       
       
-class ProposalAPIProcessView(views.APIView):
+class ProposalAPIProcessView(CheckProposalExecutedMixin, views.APIView):
     serializer_class = ProposalSerializer
     permission_classes = [IsAuthenticated, IsHead, IsInProposalHistories]
     
     def post(self, request, *args, **kwargs):
+        executed_status = self.check_status(self.kwargs['pk'])
+        
+        if executed_status:
+            return Response('The proposal has already been done!', status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
         proposal_data = ProposalService(request.user.id, request.data.get('user_to', None),
                                         self.kwargs['pk']).process_proposal(request.data.get('comment', None))
         proposal_serializer = ProposalSerializer(proposal_data)
@@ -141,11 +162,70 @@ class ProposalAPIRevisionView(views.APIView):
     permission_classes = [IsAuthenticated, IsHead, IsInProposalHistories]
     
     def post(self, request, *args, **kwargs):
+        executed_status = self.check_status(self.kwargs['pk'])
+        
+        if executed_status:
+            return Response('The proposal has already been done!', status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
         proposal_data = ProposalService(request.user.id, request.data.get('user_to', None),
                                         self.kwargs['pk']).revision_proposal(request.data.get('comment', None))
         proposal_serializer = ProposalSerializer(proposal_data)
         
         return Response(proposal_serializer.data, status=status.HTTP_202_ACCEPTED)
-      
-      
+    
+    
+class ProposalPostAPIListView(generics.ListAPIView):
+    serializer_class = ProposalPostReadListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        proposal_posts = ProposalPostService(self.request.user.id).get_proposal_posts_by_company()
+        
+        return proposal_posts
+    
+    
+class ProposalPostAPICreateCommentView(views.APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        proposal_post_data = ProposalPostService(self.request.user.id, 
+                                            self.kwargs['pk']).send_comment(request.data.get('content', None))
+        proposal_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
 
+        return Response(proposal_serializer.data, status=status.HTTP_201_CREATED)
+    
+    
+class ProposalPostAPIAddViewsView(generics.UpdateAPIView):
+    serializer_class = ProposalPostReadDetailSerializer
+    permissions_classes = [IsAuthenticated]
+    
+    def update(self, request, *args, **kwargs):
+        proposal_post_data = ProposalPostService(request.user.id, 
+                                                 self.kwargs['pk']).add_post_views(1)
+        proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
+        
+        return Response(proposal_post_serializer.data, status=status.HTTP_200_OK)
+    
+    
+class ProposalPostAPIAddLikesView(generics.UpdateAPIView):
+    serializer_class = ProposalPostReadDetailSerializer
+    permissions_classes = [IsAuthenticated]
+    
+    def update(self, request, *args, **kwargs):
+        proposal_post_data = ProposalPostService(request.user.id, 
+                                                 self.kwargs['pk']).add_post_likes(1)
+        proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
+        
+        return Response(proposal_post_serializer.data, status=status.HTTP_200_OK)
+    
+    
+class ProposalPostAPIDetailView(generics.RetrieveAPIView):
+    serializer_class = ProposalPostReadDetailSerializer
+    permissions_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        proposal_post_data = ProposalPostService(request.user.id, 
+                                                 self.kwargs['pk']).add_post_views(1)
+        proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
+        
+        return Response(proposal_post_serializer.data, status=status.HTTP_201_CREATED)

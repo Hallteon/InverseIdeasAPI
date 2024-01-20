@@ -50,7 +50,7 @@ class Proposal(models.Model):
         return f'proposals/documents/{pdf_uuid}.pdf'
     
     name = models.CharField(max_length=255, verbose_name='Название')
-    author = CurrentUserField(verbose_name='Автор')
+    author = CurrentUserField(related_name='proposals_author', verbose_name='Автор')
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='proposals_category', verbose_name='Категория')
     content = models.JSONField(verbose_name='Содержание')
     document = models.FileField(upload_to=get_path, verbose_name='Файл документа')
@@ -64,3 +64,41 @@ class Proposal(models.Model):
     class Meta:
         verbose_name = 'Заявка'
         verbose_name_plural = 'Заявки'
+        
+        
+class Tag(models.Model):
+    name = models.CharField(max_length=255, verbose_name='Название')
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = 'Тэг'
+        verbose_name_plural = 'Тэги'
+        
+class Comment(models.Model):
+    author = CurrentUserField(verbose_name='Автор')
+    content = models.TextField(verbose_name='Содержание')
+    created_datetime = models.DateTimeField(default=datetime.datetime.now(), verbose_name='Дата создания')
+    
+    def __str__(self):
+        return f'{self.author.email} - {self.created_datetime}'
+    
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+        
+        
+class ProposalPost(models.Model):
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE, related_name='proposalposts_proposal', verbose_name='Заявка')
+    tags = models.ManyToManyField('Tag', blank=True, related_name='proposalposts_tag', verbose_name='Тэги')
+    comments = models.ManyToManyField('Comment', blank=True, related_name='proposalposts_comment', verbose_name='Комментарии')
+    likes = models.IntegerField(default=0, verbose_name='Лайки')
+    views = models.IntegerField(default=0, verbose_name='Просмотры')
+    
+    def __str__(self):
+        return f'{self.proposal.name}: {self.likes} лайков; {self.views} просмотров'
+    
+    class Meta:
+        verbose_name = 'Пост'
+        verbose_name_plural = 'Посты'
