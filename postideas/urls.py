@@ -48,15 +48,20 @@ urlpatterns = [
     path('api/proposals/me/', ProposalAPIListMeView.as_view(), name='proposals_me'),
     path('api/proposals/me/search/', ProposalAPIListSearchView.as_view(), name='proposals_search'),
     path('api/proposals/posts/', ProposalPostAPIListView.as_view(), name='proposal_posts_get_all'),
+    path('api/proposals/posts/rating/', ProposalPostAPIGetRatingView.as_view(), name='proposal_posts_get_rating'),
     path('api/proposals/posts/<int:pk>/', ProposalPostAPIDetailView.as_view(), name='proposal_post_detail_get'),
-    path('api/proposals/<int:pk>/comments/create/', ProposalPostAPICreateCommentView.as_view(), name='proposal_comment_create'),
-    path('api/proposals/<int:pk>/likes/add/', ProposalPostAPIAddLikesView.as_view(), name='proposal_posts_like_add'),
+    path('api/proposals/posts/<int:pk>/comments/create/', ProposalPostAPICreateCommentView.as_view(), name='proposal_comment_create'),
+    path('api/proposals/posts/<int:pk>/likes/add/', ProposalPostAPIAddLikesView.as_view(), name='proposal_posts_like_add'),
+    path('api/proposals/posts/<int:pk>/likes/remove/', ProposalPostAPIRemoveLikesView.as_view(), name='proposals_posts_like_remove'),
     
     # Users
     path('api/users/me/', CurrentUserAPIDetailView.as_view(), name='current_user'),
+    path('api/users/me/update/', CurrentUserAPIUpdateView.as_view(), name='current_user_update'),
     path('api/users/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/users/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('api/users/achievements/types/', AchievementTypeAPIListView.as_view(), name='user_achievements'),
+    path('api/users/achievements/create/', AchievementAPICreateView.as_view(), name='user_achievements_create'),
     
     # Swagger
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

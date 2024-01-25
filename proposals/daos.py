@@ -59,12 +59,12 @@ class ProposalDAO:
     
     def filter_by_me(self, user_id: int, status_id: int = None):
         proposals = Proposal.objects.filter(Q(histories__by_user__id=user_id) 
-                                       | Q(author__id=user_id)).distinct()
+                                       | Q(author__id=user_id)).distinct().all()
         
         if status_id:
             last_history_ids = History.objects.values('proposals_history').annotate(last_history_id=Max('id')).values_list('last_history_id',
                                                                                                                            flat=True)
-            proposals = proposals.filter(histories__in=last_history_ids, histories__status__id=status_id)
+            proposals = proposals.filter(histories__in=last_history_ids, histories__status__id=status_id).distinct()
             
         return proposals
     
@@ -140,6 +140,13 @@ class ProposalPostDAO:
     def add_likes(self, proposal_post_id: int, num_likes: int):
         proposal_post = ProposalPost.objects.filter(id=proposal_post_id).get()
         proposal_post.likes += num_likes
+        proposal_post.save()
+        
+        return proposal_post
+    
+    def remove_likes(self, proposal_post_id: int, num_likes: int):
+        proposal_post = ProposalPost.objects.filter(id=proposal_post_id).get()
+        proposal_post.likes -= num_likes
         proposal_post.save()
         
         return proposal_post

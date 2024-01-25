@@ -123,4 +123,10 @@ class ProposalService:
         status_check = ProposalDAO().check_statuses(self.proposal_id, [executed_status])
         
         return status_check
+    
+    def check_proposal_rejected_status(self):
+        rejected_status = StatusDAO().get_by_type('proposal_rejected')
+        status_check = ProposalDAO().check_statuses(self.proposal_id, [rejected_status])
+        
+        return status_check
         

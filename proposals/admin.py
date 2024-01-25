@@ -21,7 +21,7 @@ class HistoryAdmin(admin.ModelAdmin):
 
 
 class ProposalAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'author', 'category', 'level', 'created_date', 'document')
+    list_display = ('id', 'name', 'author', 'category', 'level', 'created_date', 'description', 'document')
     search_fields = ('id', 'name', 'category')
     list_filter = ('name',)
     
@@ -39,9 +39,9 @@ class CommentAdmin(admin.ModelAdmin):
     
     
 class ProposalPostAdmin(admin.ModelAdmin):
-    list_display = ('id', 'proposal', 'likes', 'views')
-    search_fields = ('id', 'likes', 'views')
-    list_filter = ('likes', 'views')
+    list_display = ('id', 'proposal', 'views')
+    search_fields = ('id', 'views')
+    list_filter = ('views',)
     
 
 admin.site.register(Category, CategoryAdmin)    

@@ -1,4 +1,6 @@
 import uuid
+
+from django.db.models import Count
 from proposals.mixins import CheckProposalExecutedMixin
 from proposals.services.proposal_posts_service import ProposalPostService
 from rest_framework import generics, status
@@ -219,6 +221,18 @@ class ProposalPostAPIAddLikesView(generics.UpdateAPIView):
         return Response(proposal_post_serializer.data, status=status.HTTP_200_OK)
     
     
+class ProposalPostAPIRemoveLikesView(generics.UpdateAPIView):
+    serializer_class = ProposalPostReadDetailSerializer
+    permissions_classes = [IsAuthenticated]
+    
+    def update(self, request, *args, **kwargs):
+        proposal_post_data = ProposalPostService(request.user.id, 
+                                                 self.kwargs['pk']).remove_post_likes(1)
+        proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
+        
+        return Response(proposal_post_serializer.data, status=status.HTTP_200_OK)
+    
+    
 class ProposalPostAPIDetailView(generics.RetrieveAPIView):
     serializer_class = ProposalPostReadDetailSerializer
     permissions_classes = [IsAuthenticated]
@@ -229,3 +243,16 @@ class ProposalPostAPIDetailView(generics.RetrieveAPIView):
         proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
         
         return Response(proposal_post_serializer.data, status=status.HTTP_201_CREATED)
+    
+    
+class ProposalPostAPIGetRatingView(generics.ListAPIView):
+    serializer_class = ProposalPostReadListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        proposal_posts = ProposalPostService(self.request.user.id).get_proposal_posts_by_company()
+        proposal_posts = proposal_posts.annotate(num_related_objects=Count('likes')).order_by('-likes', '-views')
+        
+        return proposal_posts
+        
+   

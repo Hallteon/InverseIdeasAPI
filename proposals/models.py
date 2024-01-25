@@ -52,6 +52,7 @@ class Proposal(models.Model):
     name = models.CharField(max_length=255, verbose_name='Название')
     author = CurrentUserField(related_name='proposals_author', verbose_name='Автор')
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='proposals_category', verbose_name='Категория')
+    description = models.TextField(verbose_name='Описание')
     content = models.JSONField(verbose_name='Содержание')
     document = models.FileField(upload_to=get_path, verbose_name='Файл документа')
     histories = models.ManyToManyField('History', blank=True, related_name='proposals_history', verbose_name='История')
@@ -93,7 +94,7 @@ class ProposalPost(models.Model):
     proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE, related_name='proposalposts_proposal', verbose_name='Заявка')
     tags = models.ManyToManyField('Tag', blank=True, related_name='proposalposts_tag', verbose_name='Тэги')
     comments = models.ManyToManyField('Comment', blank=True, related_name='proposalposts_comment', verbose_name='Комментарии')
-    likes = models.IntegerField(default=0, verbose_name='Лайки')
+    likes = models.ManyToManyField(CustomUser, related_name='proposals_like', verbose_name='Лайки')
     views = models.IntegerField(default=0, verbose_name='Просмотры')
     
     def __str__(self):

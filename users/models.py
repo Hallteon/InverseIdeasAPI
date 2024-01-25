@@ -1,6 +1,36 @@
 import datetime
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+
+
+class AchievementType(models.Model):
+    def get_path(instance, filename):
+        extension = filename.split('.')[-1]
+        image_uuid = uuid.uuid1().hex
+
+        return f'users/achievements/{image_uuid}.{extension}'
+    
+    cover = models.ImageField(blank=True, null=True, upload_to=get_path, verbose_name='Обложка')
+    name = models.CharField(max_length=255, verbose_name='Название')
+    description = models.TextField(verbose_name='Описание')
+    points = models.IntegerField(verbose_name='Баллы')
+    achievement_type_name = models.CharField(max_length=255, verbose_name='Тип')
+    
+    class Meta:
+        verbose_name = 'Тип достижения'
+        verbose_name_plural = 'Типы достижений'
+
+
+class Achievement(models.Model):
+    achievement_type = models.ForeignKey('AchievementType', on_delete=models.CASCADE, 
+                                         related_name='achievements_achievementtype', verbose_name='Тип')
+    current_progress = models.IntegerField(default=0, verbose_name='Прогресс сейчас')
+    total_progress = models.IntegerField(default=0, verbose_name='Прогресс всего')    
+    
+    class Meta:
+        verbose_name = 'Достижение'
+        verbose_name_plural = 'Достижения'
 
 
 class Job(models.Model):
@@ -52,7 +82,14 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    def get_path(instance, filename):
+        extension = filename.split('.')[-1]
+        image_uuid = uuid.uuid1().hex
+
+        return f'users/avatars/{image_uuid}.{extension}'
+    
     email = models.EmailField(unique=True, blank=True, verbose_name='Почта')
+    avatar = models.ImageField(blank=True, null=True, upload_to=get_path, verbose_name='Аватар')
     phone_number = models.CharField(max_length=255, blank=True, unique=True, verbose_name='Номер телефона')
     telegram = models.CharField(max_length=255, unique=True, verbose_name='Телеграм')
     firstname = models.CharField(max_length=255, verbose_name='Имя')
@@ -60,6 +97,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     surname = models.CharField(max_length=255, verbose_name='Отчество')
     birthday = models.DateField(default=datetime.date.today(), verbose_name='День рождения')
     job = models.ForeignKey('Job', default=1, null=True, on_delete=models.CASCADE, related_name='users_job', verbose_name='Должность')
+    achievements = models.ManyToManyField('Achievement', related_name='users_achievement', verbose_name='Достижения')
     role = models.ForeignKey('Role', default=2, on_delete=models.CASCADE, related_name='users_role', verbose_name='Роль')
     password = models.CharField(max_length=255, verbose_name='Пароль')
     

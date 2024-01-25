@@ -30,6 +30,11 @@ class ProposalPostService:
                                                     num_likes)
         return proposal_post
     
+    def remove_post_likes(self, num_likes):
+        proposal_post = ProposalPostDAO().remove_likes(self.proposal_post_id,
+                                                    num_likes)
+        return proposal_post
+    
     def add_post_views(self, num_views):
         proposal_post = ProposalPostDAO().add_views(self.proposal_post_id,
                                                     num_views)
