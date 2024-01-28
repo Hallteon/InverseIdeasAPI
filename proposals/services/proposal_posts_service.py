@@ -25,14 +25,16 @@ class ProposalPostService:
         
         return proposal_post
     
-    def add_post_likes(self, num_likes):
+    def add_post_likes(self):
+        user = CustomUserDAO().get(self.user_id)
         proposal_post = ProposalPostDAO().add_likes(self.proposal_post_id,
-                                                    num_likes)
+                                                    [user])
         return proposal_post
     
-    def remove_post_likes(self, num_likes):
+    def remove_post_likes(self):
+        user = CustomUserDAO().get(self.user_id)
         proposal_post = ProposalPostDAO().remove_likes(self.proposal_post_id,
-                                                    num_likes)
+                                                    [user])
         return proposal_post
     
     def add_post_views(self, num_views):

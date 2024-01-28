@@ -31,7 +31,8 @@ class ProposalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Proposal
-        fields = ('id', 'name', 'author', 'category', 'description', 'level', 'content', 'document', 'histories', 'created_date')
+        fields = ('id', 'name', 'author', 'category', 'description', 'level', 'content', 'document',
+                  'histories', 'created_date', 'funcional_requirements')
         
         
 class TagSerializer(serializers.ModelSerializer):
@@ -65,20 +66,31 @@ class ProposalPostReadDetailSerializer(serializers.ModelSerializer):
 class ProposalPostReadListSerializer(serializers.ModelSerializer):
     proposal = ProposalSerializer(required=False)
     likes = serializers.SerializerMethodField(required=False)
+    user_likes = serializers.SerializerMethodField(required=False)
     comments = serializers.SerializerMethodField(required=False)
     
     def get_likes(self, obj):
         return obj.likes.count()
+    
+    def get_user_likes(self, obj):
+        user_ids = []
+        
+        for user in obj.likes.all():
+            user_ids.append(user.id)
+            
+        return user_ids
     
     def get_comments(self, obj):
         return obj.comments.count()
     
     class Meta:
         model = ProposalPost
-        fields = ('id', 'proposal', 'tags', 'comments', 'likes', 'views')        
+        fields = ('id', 'proposal', 'tags', 'comments', 'user_likes', 'likes', 'views')        
         
         
 class ProposalPostWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalPost
         fields = ('id', 'proposal', 'tags', 'comments', 'likes', 'views')
+        
+        

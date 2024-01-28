@@ -21,7 +21,7 @@ class HistoryAdmin(admin.ModelAdmin):
 
 
 class ProposalAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'author', 'category', 'level', 'created_date', 'description', 'document')
+    list_display = ('id', 'name', 'author', 'category', 'level', 'created_date', 'description', 'funcional_requirements', 'document')
     search_fields = ('id', 'name', 'category')
     list_filter = ('name',)
     

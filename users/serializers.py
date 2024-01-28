@@ -1,3 +1,4 @@
+from django.db.models import Count
 from proposals.models import Proposal, ProposalPost
 from rest_framework import serializers
 from djoser.serializers import UserCreateSerializer
@@ -9,7 +10,7 @@ from users.models import *
 class AchievementTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AchievementType
-        fields = ('id', 'name', 'cover', 'description', 'points')
+        fields = ('id', 'name', 'cover', 'description', 'points', 'total_progress')
 
 
 class AchievementSerializer(serializers.ModelSerializer):
@@ -17,7 +18,7 @@ class AchievementSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Achievement
-        fields = ('id', 'achievement_type', 'current_progress','total_progress')
+        fields = ('id', 'achievement_type', 'current_progress')
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -84,7 +85,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
     division = serializers.SerializerMethodField(required=False)
     department = serializers.SerializerMethodField(required=False)
     office = serializers.SerializerMethodField(required=False)
+    company = serializers.SerializerMethodField(required=False)
     likes_sended = serializers.SerializerMethodField(required=False)
+    rating_position = serializers.SerializerMethodField(required=False)
     proposals = serializers.SerializerMethodField(required=False)
     achievements_count = serializers.SerializerMethodField(required=False)
     achievements_points = serializers.SerializerMethodField(required=False)
@@ -116,6 +119,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
         else:
             return office_name
         
+    def get_company(self, obj):
+        try:
+            division_data = obj.divisions_employee.all().get()
+            department_data = division_data.departments_division.all().get()
+            office_data = department_data.offices_department.all().get()
+            company_name = office_data.companies_office.all().get().name
+        except ObjectDoesNotExist as e:
+            return None
+        else:
+            return company_name
+        
     def get_likes_sended(self, obj):
         try:
             num_likes = 0
@@ -143,11 +157,34 @@ class CustomUserSerializer(serializers.ModelSerializer):
         achievements_points = 0
         
         for achievement in obj.achievements.all():
-            achievements_points += achievement.points
+            if achievement.current_progress == achievement.achievement_type.total_progress:
+                achievements_points += achievement.achievement_type.points
         
         return achievements_points
+    
+    def get_rating_position(self, obj):
+        try:
+            division_data = obj.divisions_employee.all().get()
+            department_data = division_data.departments_division.all().get()
+            office_data = department_data.offices_department.all().get()
+            company_data = office_data.companies_office.all().get()
+            proposal_posts = ProposalPost.objects.filter(proposal__author__divisions_employee__departments_division__offices_department__companies_office__id=company_data.id)
+            proposal_posts = proposal_posts.annotate(num_related_objects=Count('likes')).order_by('-likes', '-views')
+            user_proposal = proposal_posts.filter(proposal__author__id=obj.id)
+            rating_position = None
+            
+            if len(user_proposal):
+                user_proposal = user_proposal[0]
+                rating_position = list(proposal_posts).index(user_proposal) + 1
+                
+        except ObjectDoesNotExist as e:
+            return None
+        
+        else:
+            return rating_position
    
     class Meta:
         model = get_user_model()
         fields = ('id', 'email', 'avatar', 'phone_number', 'telegram', 'firstname', 'lastname', 
-                  'surname', 'birthday', 'job', 'role', 'achievements', 'achievements_count', 'achievements_points', 'likes_sended', 'proposals', 'division', 'department', 'office')
+                  'surname', 'birthday', 'job', 'role', 'achievements', 'achievements_count', 'achievements_points', 
+                  'likes_sended', 'proposals', 'rating_position', 'division', 'department', 'office', 'company')

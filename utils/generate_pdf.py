@@ -1,30 +1,42 @@
 import io
-
-from django.core.files.base import ContentFile
-from django.http import FileResponse
+import markdown
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from weasyprint import HTML
 
 
 class FileGenerator:
     def __init__(self, content):
         self.content = content
 
+
     def generate_pdf(self):
         buffer = io.BytesIO()
-        p = canvas.Canvas(buffer)
-        y_cord = 750
+        markdown_content = markdown.markdown(self.content)
+        html_content =  f"""
+        <html>
+            <head>
+                <style>
+                    @font-face {{
+                        font-family: 'Roboto';
+                        src: url('https://fonts.gstatic.com/s/roboto/v27/KFOmCnqEu92Fr1Mu4mxP.ttf') format('truetype');
+                    }}
+                    body {{
+                        font-family: 'Roboto', sans-serif;
+                    }}
+                </style>
+            </head>
+            <body>
+                {markdown_content}
+            </body>
+        </html>
+        """
         
-        pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
-        p.setFont('DejaVuSerif', 12)
+        HTML(string=html_content).write_pdf(buffer)
 
-        for head in self.content.keys():
-            p.drawString(100, y_cord, f'{head}: {self.content[head]}')
-            y_cord -= 20
-
-        p.showPage()
-        p.save()
         buffer.seek(0)
 
         return buffer

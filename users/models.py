@@ -16,6 +16,10 @@ class AchievementType(models.Model):
     description = models.TextField(verbose_name='Описание')
     points = models.IntegerField(verbose_name='Баллы')
     achievement_type_name = models.CharField(max_length=255, verbose_name='Тип')
+    total_progress = models.IntegerField(default=0, verbose_name='Прогресс всего')
+    
+    def __str__(self):
+        return self.name
     
     class Meta:
         verbose_name = 'Тип достижения'
@@ -25,8 +29,10 @@ class AchievementType(models.Model):
 class Achievement(models.Model):
     achievement_type = models.ForeignKey('AchievementType', on_delete=models.CASCADE, 
                                          related_name='achievements_achievementtype', verbose_name='Тип')
-    current_progress = models.IntegerField(default=0, verbose_name='Прогресс сейчас')
-    total_progress = models.IntegerField(default=0, verbose_name='Прогресс всего')    
+    current_progress = models.IntegerField(default=0, verbose_name='Прогресс сейчас')    
+    
+    def __str__(self):
+        return f'{self.achievement_type.name} - {self.current_progress}'
     
     class Meta:
         verbose_name = 'Достижение'

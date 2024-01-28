@@ -54,6 +54,7 @@ class Proposal(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='proposals_category', verbose_name='Категория')
     description = models.TextField(verbose_name='Описание')
     content = models.JSONField(verbose_name='Содержание')
+    funcional_requirements = models.TextField(blank=True, verbose_name='Функциональное требование')
     document = models.FileField(upload_to=get_path, verbose_name='Файл документа')
     histories = models.ManyToManyField('History', blank=True, related_name='proposals_history', verbose_name='История')
     level = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)], verbose_name='Уровень')

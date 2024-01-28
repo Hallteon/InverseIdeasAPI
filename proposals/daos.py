@@ -137,16 +137,22 @@ class ProposalPostDAO:
         
         return proposal_post
         
-    def add_likes(self, proposal_post_id: int, num_likes: int):
+    def add_likes(self, proposal_post_id: int, users: list):
         proposal_post = ProposalPost.objects.filter(id=proposal_post_id).get()
-        proposal_post.likes += num_likes
+        
+        for user in users:
+            proposal_post.likes.add(user)
+        
         proposal_post.save()
         
         return proposal_post
     
-    def remove_likes(self, proposal_post_id: int, num_likes: int):
+    def remove_likes(self, proposal_post_id: int, users: list):
         proposal_post = ProposalPost.objects.filter(id=proposal_post_id).get()
-        proposal_post.likes -= num_likes
+        
+        for user in users:
+            proposal_post.likes.remove(user)
+        
         proposal_post.save()
         
         return proposal_post
